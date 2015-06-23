@@ -6,17 +6,10 @@ var Menu = require('menu');
 var shell = require('shell');
 var BrowserWindow = require('browser-window');
 
-// Report crashes to our server.
-require('crash-reporter').start();
-
 app.on('window-all-closed', function() {
     if (process.platform != 'darwin') {
         app.quit();
     }
-});
-
-app.on('open-file', function(evt) {
-    console.log('open-file', evt)
 });
 
 var appUri = 'http://localhost:11583';
@@ -32,15 +25,15 @@ function checkOrigin(cb) {
     };
 }
 
-function sendMsg(webContents, channel, msg) {
-    checkUrl(webContents) && webContents.send(channel, msg);
-}
-
 var windows = {};
 
 function ClasseurCtx(webContents) {
     this.webContents = webContents;
 }
+
+ClasseurCtx.prototype.sendMsg = function(channel, msg) {
+    checkUrl(this.webContents) && this.webContents.send(channel, msg);
+};
 
 ClasseurCtx.prototype.watchFile = function(path) {
     var self = this;
@@ -54,10 +47,10 @@ ClasseurCtx.prototype.watchFile = function(path) {
                     err = 'Can not open binary file.';
                 }
                 if (err) {
-                    sendMsg(self.webContents, 'error', err.toString());
+                    self.sendMsg('error', err.toString());
                 } else if (content !== undefined && watchCtx.content !== content) {
                     watchCtx.content = content;
-                    sendMsg(self.webContents, 'file', {
+                    self.sendMsg('file', {
                         path: path,
                         content: content
                     });
@@ -66,106 +59,92 @@ ClasseurCtx.prototype.watchFile = function(path) {
         },
         writeFile: function() {
             fs.writeFile(this.path, this.content, function(err) {
-                err && sendMsg(self.webContents, 'error', err.toString());
+                err && self.sendMsg('error', err.toString());
             });
         },
         createWatcher: function() {
-            this.watcher = fs.watch(this.path);
-            this.watcher.on('change', function() {
-                watchCtx.readFile();
-            });
-            this.watcher.on('error', function() {
-                setTimeout(function() {
-                    watchCtx.createWatcher();
-                }, 10000);
-            });
+            this.watchListener = function(curr, prev) {
+                curr.mtime.getTime() !== prev.mtime.getTime() && watchCtx.readFile();
+            };
+            fs.watchFile(this.path, this.watchListener);
+        },
+        removeWatcher: function() {
+            this.watchListener && fs.unwatchFile(this.path, this.watchListener);
+            this.watchListener = undefined;
         }
     };
     watchCtx.createWatcher();
     watchCtx.readFile();
-    this.watchCtx && this.watchCtx.watcher.close();
+    this.watchCtx && this.watchCtx.removeWatcher();
     this.watchCtx = watchCtx;
 };
 
 ClasseurCtx.prototype.clean = function() {
-    this.watchCtx && this.watchCtx.watcher.close();
+    this.watchCtx && this.watchCtx.removeWatcher();
 };
 
-function createWindow() {
+function createWindow(cb) {
     var browserWindow = new BrowserWindow({
         width: 1024,
         height: 768,
+        title: 'Classeur',
         'node-integration': false,
         preload: path.join(__dirname, 'preload.js')
     });
-    windows[browserWindow.id] = browserWindow;
-    browserWindow.loadUrl(appUri);
-    browserWindow.openDevTools();
-    browserWindow.lastFocus = Date.now();
-    browserWindow.on('focus', function() {
-        browserWindow.lastFocus = Date.now();
-    });
-    browserWindow.on('closed', function() {
-        delete windows[browserWindow.id];
-    });
-
     var classeurCtx = new ClasseurCtx(browserWindow.webContents);
     browserWindow.webContents.classeurCtx = classeurCtx;
+
+    windows[browserWindow.id] = browserWindow;
+    browserWindow.loadUrl(appUri);
+    // browserWindow.openDevTools();
+    browserWindow.on('closed', function() {
+        classeurCtx.clean();
+        delete windows[browserWindow.id];
+    });
     browserWindow.webContents.on('will-navigate', function() {
         classeurCtx.clean();
         classeurCtx = new ClasseurCtx(browserWindow.webContents);
     });
-
     browserWindow.webContents.on('new-window', function(evt, url) {
         shell.openExternal(url);
         evt.preventDefault();
+    });
+    cb && browserWindow.webContents.on('classeur-ready', function() {
+        cb(browserWindow);
     });
 
     return browserWindow;
 }
 
-function getWindow(browserWindow, cb) {
-    browserWindow = browserWindow && windows[browserWindow.id];
-    var maxLastFocus = 0;
-    browserWindow || Object.keys(windows).forEach(function(id) {
-        var lastFocus = windows[id].lastFocus;
-        if (lastFocus > maxLastFocus) {
-            browserWindow = windows[id];
-            maxLastFocus = lastFocus;
-        }
-    });
-    browserWindow = browserWindow || createWindow();
-    if (browserWindow.webContents.classeurCtx.isClasseurReady) {
-        cb(browserWindow);
-    } else {
-        browserWindow.webContents.on('classeur-ready', function() {
-            cb(browserWindow);
-        });
-    }
+function openFile(browserWindow, path) {
+    browserWindow.webContents.classeurCtx.watchFile(path);
+    browserWindow.focus();
+    app.addRecentDocument(path);
 }
 
-function openFileDialog(browserWindow) {
+function openFileDialog() {
     dialog.showOpenDialog({
         properties: ['openFile']
     }, function(paths) {
         if (paths && paths[0]) {
-            getWindow(browserWindow, function(browserWindow) {
-                browserWindow.webContents.classeurCtx.watchFile(paths[0]);
-                browserWindow.focus();
+            createWindow(function(browserWindow) {
+                openFile(browserWindow, paths[0]);
             });
         }
     });
 }
 
-function newFileDialog(browserWindow) {
+function newFileDialog() {
     dialog.showSaveDialog(function(path) {
         if (path) {
-            getWindow(browserWindow, function(browserWindow) {
+            createWindow(function(browserWindow) {
+                var classeurCtx = browserWindow.webContents.classeurCtx;
                 fs.writeFile(path, '', function(err) {
                     if (err) {
-                        return sendMsg(browserWindow.webContents, 'error', err.toString());
+                        return classeurCtx.sendMsg('error', err.toString());
                     }
-                    browserWindow.webContents.classeurCtx.watchFile(path);
+                    app.addRecentDocument(path);
+                    classeurCtx.watchFile(path);
                     browserWindow.focus();
                 });
             });
@@ -173,13 +152,25 @@ function newFileDialog(browserWindow) {
     });
 }
 
+var isReady, openWhenReady;
+app.on('open-file', function(evt, path) {
+    evt.preventDefault();
+    if(isReady) {
+        return createWindow(function(browserWindow) {
+                openFile(browserWindow, path);
+            });
+    }
+    openWhenReady = path;
+});
+
 app.on('activate-with-no-open-windows', createWindow);
 
 var ipc = require('ipc');
 ipc.on('getVersion', checkOrigin(function(evt) {
-    evt.sender.classeurCtx.isClasseurReady = true;
+    var classeurCtx = evt.sender.classeurCtx;
+    classeurCtx.isClasseurReady = true;
     evt.sender.emit('classeur-ready');
-    sendMsg(evt.sender, 'version', app.getVersion());
+    classeurCtx.sendMsg('version', app.getVersion());
 }));
 
 ipc.on('startWatching', checkOrigin(function(evt, path) {
@@ -188,7 +179,7 @@ ipc.on('startWatching', checkOrigin(function(evt, path) {
 
 ipc.on('stopWatching', checkOrigin(function(evt, path) {
     var watchCtx = evt.sender.classeurCtx.watchCtx;
-    watchCtx && watchCtx.path === path && watchCtx.watchCtx.watcher.close();
+    watchCtx && watchCtx.path === path && watchCtx.removeWatcher();
 }));
 
 ipc.on('saveFile', checkOrigin(function(evt, file) {
@@ -299,9 +290,12 @@ function onReady() {
         }
     }, ]);
     app.dock && app.dock.setMenu(dockMenu);
+    isReady = true;
 }
 
 app.on('ready', function() {
     onReady();
-    createWindow();
+    createWindow(openWhenReady && function(browserWindow) {
+        openFile(browserWindow, openWhenReady);
+    });
 });

@@ -1,5 +1,5 @@
 {
-  "name": "clelectron",
+  "name": "Classeur",
   "version": "0.1.0",
   "description": "",
   "main": "main.js",
@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron-prebuilt": "^0.28.1"
+    "electron-prebuilt": "^0.28.1",
+    "gulp": "^3.9.0",
+    "gulp-atom-electron": "^0.12.0"
   }
 }
