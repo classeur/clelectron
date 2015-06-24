@@ -11,6 +11,7 @@
   "license": "ISC",
   "devDependencies": {
     "electron-prebuilt": "^0.28.1",
+    "classets": "classeur/classets.git#master",
     "gulp": "^3.9.0",
     "gulp-atom-electron": "^0.12.0"
   }

@@ -4,8 +4,8 @@ var extend = require('util')._extend;
 
 var electronOptions = {
 	version: '0.28.2',
-	winIcon: 'classeur.ico',
-	darwinIcon: 'classeur.icns',
+	winIcon: 'node_modules/classets/images/icon_large.ico',
+	darwinIcon: 'node_modules/classets/images/icon_large.icns',
 };
 
 gulp.task('default', function() {
@@ -13,5 +13,5 @@ gulp.task('default', function() {
 		.pipe(electron(extend({
 			platform: 'darwin',
 		}, electronOptions)))
-		.pipe(electron.zfsdest('classeur-darwin.zip'));
+		.pipe(electron.zfsdest('out/classeur-darwin.zip'));
 });

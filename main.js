@@ -163,7 +163,9 @@ app.on('open-file', function(evt, path) {
     openWhenReady = path;
 });
 
-app.on('activate-with-no-open-windows', createWindow);
+app.on('activate-with-no-open-windows', function() {
+    createWindow();
+});
 
 var ipc = require('ipc');
 ipc.on('getVersion', checkOrigin(function(evt) {
