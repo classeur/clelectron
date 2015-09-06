@@ -83,14 +83,18 @@ ClasseurCtx.prototype.clean = function() {
     this.watchCtx && this.watchCtx.removeWatcher();
 };
 
+var lastWindowOffset = 0;
 function createWindow(cb) {
     var browserWindow = new BrowserWindow({
-        width: 1024,
-        height: 768,
+        width: 1050,
+        height: 750,
+        x: lastWindowOffset % 100 + 50,
+        y: lastWindowOffset % 100 + 50,
         title: 'Classeur',
         'node-integration': false,
         preload: path.join(__dirname, 'preload.js')
     });
+    lastWindowOffset += 20;
     var classeurCtx = new ClasseurCtx(browserWindow.webContents);
     browserWindow.webContents.classeurCtx = classeurCtx;
 
