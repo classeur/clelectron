@@ -100,7 +100,7 @@ function createWindow(cb) {
 
     windows[browserWindow.id] = browserWindow;
     browserWindow.loadUrl(appUri);
-    // browserWindow.openDevTools();
+    browserWindow.openDevTools();
     browserWindow.on('closed', function() {
         classeurCtx.clean();
         delete windows[browserWindow.id];
