@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+    body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.42857143;
+        color: #333;
+        margin: 30px 20px 0;
+    }
+    
+    * {
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    input {
+        display: block;
+        margin: 5px 0 0;
+        width: 100%;
+        padding: 0 2px;
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+        color: #555;
+        background-color: #fff;
+        background-image: none;
+        border: 0;
+        border-bottom: 1px solid #ccc;
+        outline: none;
+    }
+    
+    .label {
+        color: rgba(0, 0, 0, 0.54);
+        font-size: 12px;
+    }
+    
+    button {
+        color: rgb(33, 150, 243);
+        font-weight: normal;
+        height: auto;
+        padding: 8px 10px;
+        margin: 10px 0 0;
+        line-height: inherit;
+        font-size: inherit;
+        box-sizing: border-box;
+        -webkit-user-select: none;
+        user-select: none;
+        outline: none;
+        border: 0;
+        display: inline-block;
+        background: transparent;
+        white-space: nowrap;
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 14px;
+        font-style: inherit;
+        font-variant: inherit;
+        font-family: inherit;
+        text-decoration: none;
+        cursor: pointer;
+        overflow: hidden;
+        letter-spacing: 0.01em;
+        border-radius: 3px;
+    }
+    
+    button:hover {
+        background-color: rgba(158, 158, 158, 0.2);
+    }
+    </style>
+</head>
+
+<body>
+    <div class="label">App URL</div>
+    <input id="app-url">
+    <div align="right">
+        <button id="apply">Apply</button>
+    </div>
+    <script>
+    var ipc = require('ipc');
+    var appUrlInput = document.getElementById('app-url');
+    var applyButton = document.getElementById('apply');
+
+    function formatUrl(url) {
+        url = (url || '').trim();
+        if (url.slice(-1) === '/') {
+            url = url.slice(0, -1);
+        }
+        return url;
+    }
+    applyButton.addEventListener('click', function() {
+        ipc.send('setSettings', {
+            appUrl: formatUrl(appUrlInput.value)
+        });
+    });
+    ipc.on('settings', function(settings) {
+        appUrlInput.value = settings.appUrl;
+    });
+    ipc.send('getSettings');
+    </script>
+</body>
+
+</html>

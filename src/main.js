@@ -5,18 +5,27 @@ var dialog = require('dialog');
 var Menu = require('menu');
 var shell = require('shell');
 var BrowserWindow = require('browser-window');
+var os = require('os');
+var autoUpdater = require('auto-updater');
 
-app.on('window-all-closed', function() {
-    if (process.platform != 'darwin') {
-        app.quit();
-    }
-});
+var applySettings, settings, settingsFilePath = path.join(app.getPath('userData'), 'settings.json');
+try {
+    settings = JSON.parse(fs.readFileSync(settingsFilePath));
+} catch (e) {
+    settings = {
+        appUrl: 'https://app.classeur.io'
+    };
+}
 
-var appUri = 'http://localhost:11583';
+if (process.platform === 'darwin') {
+    var platform = os.platform() + '_' + os.arch();
+    var version = app.getVersion();
+    autoUpdater.setFeedUrl('http://download.classeur.io/update/' + platform + '/' + version);
+}
 
 function checkUrl(url) {
     url = typeof url === 'string' ? url : url.getUrl();
-    return url.slice(0, appUri.length) === appUri;
+    return url.slice(0, settings.appUrl.length) === settings.appUrl;
 }
 
 function checkOrigin(cb) {
@@ -84,6 +93,7 @@ ClasseurCtx.prototype.clean = function() {
 };
 
 var lastWindowOffset = 0;
+
 function createWindow(cb) {
     var browserWindow = new BrowserWindow({
         width: 1050,
@@ -99,8 +109,8 @@ function createWindow(cb) {
     browserWindow.webContents.classeurCtx = classeurCtx;
 
     windows[browserWindow.id] = browserWindow;
-    browserWindow.loadUrl(appUri);
-    browserWindow.openDevTools();
+    browserWindow.loadUrl(settings.appUrl);
+    // browserWindow.openDevTools();
     browserWindow.on('closed', function() {
         classeurCtx.clean();
         delete windows[browserWindow.id];
@@ -118,6 +128,25 @@ function createWindow(cb) {
     });
 
     return browserWindow;
+}
+
+var settingsWindow;
+
+function openSettingsWindow() {
+    if (settingsWindow) {
+        settingsWindow.show();
+        return;
+    }
+    settingsWindow = new BrowserWindow({
+        width: 320,
+        height: 160,
+        resizable: false,
+        title: 'Settings',
+    });
+    settingsWindow.on('closed', function() {
+        settingsWindow = undefined;
+    });
+    settingsWindow.loadUrl('file://' + __dirname + '/settings.html');
 }
 
 function openFile(browserWindow, path) {
@@ -159,16 +188,25 @@ function newFileDialog() {
 var isReady, openWhenReady;
 app.on('open-file', function(evt, path) {
     evt.preventDefault();
-    if(isReady) {
+    if (isReady) {
         return createWindow(function(browserWindow) {
-                openFile(browserWindow, path);
-            });
+            openFile(browserWindow, path);
+        });
     }
     openWhenReady = path;
 });
 
 app.on('activate-with-no-open-windows', function() {
     createWindow();
+});
+
+app.on('window-all-closed', function() {
+    if (applySettings) {
+        applySettings = false;
+        createWindow();
+    } else if (process.platform != 'darwin') {
+        app.quit();
+    }
 });
 
 var ipc = require('ipc');
@@ -196,15 +234,41 @@ ipc.on('saveFile', checkOrigin(function(evt, file) {
     }
 }));
 
+ipc.on('getSettings', function(evt) {
+    evt.sender.send('settings', settings);
+});
+
+ipc.on('setSettings', function(evt, data) {
+    settings = data;
+    fs.writeFileSync(settingsFilePath, JSON.stringify(data));
+    settingsWindow && settingsWindow.destroy();
+    applySettings = true;
+    Object.keys(windows).forEach(function(id) {
+        windows[id].destroy();
+    });
+});
+
 function onReady() {
     var template = [{
         label: 'Classeur',
         submenu: [{
+            label: 'New window',
+            click: function() {
+                createWindow();
+            }
+        }, {
+            type: 'separator'
+        }, {
             label: 'New local file',
             click: newFileDialog
         }, {
             label: 'Open local file',
             click: openFileDialog
+        }, {
+            type: 'separator'
+        }, {
+            label: 'Settings',
+            click: openSettingsWindow
         }, {
             type: 'separator'
         }, {

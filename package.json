@@ -1,21 +1,43 @@
 {
   "name": "Classeur",
-  "version": "0.1.0",
-  "description": "",
-  "main": "main.js",
+  "version": "1.0.0",
+  "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "clean": "rm -rf ./dist",
+    "clean:osx": "rm -rf ./dist/osx",
+    "clean:win": "rm -rf ./dist/win",
+    "build": "npm run clean && npm run build:osx && npm run build:win",
+    "build:osx": "npm run clean:osx && electron-packager ./ Classeur --out=dist --overwrite --platform=darwin --arch=x64 --version=0.34.2 --icon=./assets/images/icon.icns",
+    "pack:osx": "npm run build:osx && electron-builder \"dist/Classeur-darwin-x64/Classeur.app\" --platform=osx --out=\"dist/osx\" --config=packager.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Benoit Schweblin",
   "license": "ISC",
   "devDependencies": {
+    "appdmg": "^0.3.5",
+    "classets": "github:classeur/classets#master",
+    "clgulp": "^1.0.4",
+    "electron-builder": "^2.0.2",
+    "electron-packager": "^5.1.1",
     "electron-prebuilt": "^0.34.0",
-    "classets": "classeur/classets.git#master",
     "gulp": "^3.9.0",
-    "gulp-atom-electron": "^0.12.0"
+    "gulp-atom-electron": "^1.0.0",
+    "gulp-github-release": "^1.0.3",
+    "gulp-symdest": "^1.0.0",
+    "gulp-vinyl-zip": "^1.1.1",
+    "rimraf": "^2.4.3"
   },
   "dependencies": {
     "spellchecker": "^3.1.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/classeur/clelectron.git"
+  },
+  "bugs": {
+    "url": "https://github.com/classeur/clelectron/issues"
+  },
+  "homepage": "https://github.com/classeur/clelectron#readme",
+  "description": ""
 }
