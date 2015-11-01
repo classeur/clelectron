@@ -7,6 +7,9 @@ var shell = require('shell');
 var BrowserWindow = require('browser-window');
 var os = require('os');
 var autoUpdater = require('auto-updater');
+autoUpdater.on('error', function(err) {
+    console.error(err);
+});
 
 var applySettings, settings, settingsFilePath = path.join(app.getPath('userData'), 'settings.json');
 try {

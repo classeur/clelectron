@@ -8,6 +8,7 @@ var symdest = require('gulp-symdest');
 var extend = require('util')._extend;
 var appdmg = require('appdmg');
 var release = require('gulp-github-release');
+var replace = require('gulp-replace');
 
 var electronOptions = {
 	version: '0.34.2',
@@ -39,7 +40,20 @@ gulp.task('build:osx', ['clean:osx'], function() {
 		.pipe(symdest('dist/osx'));
 });
 
-gulp.task('sign:osx', ['build:osx'], function(cb) {
+gulp.task('build-fix-plist:osx', ['build:osx'], function() {
+	gulp.src('dist/osx/Classeur.app/Contents/Info.plist')
+		.pipe(replace('<dict>', [
+			'<dict>',
+			'    <key>NSAppTransportSecurity</key>',
+			'    <dict>',
+			'      <key>NSAllowsArbitraryLoads</key>',
+			'      <true/>',
+			'    </dict>'
+		].join('\n')))
+		.pipe(gulp.dest('dist/osx/Classeur.app/Contents/'));
+});
+
+gulp.task('sign:osx', ['build-fix-plist:osx'], function(cb) {
 	exec('codesign -f -v --deep -s "Developer ID Application: Benoit Schweblin (NX787V9962)" dist/osx/Classeur.app', cb);
 });
 
