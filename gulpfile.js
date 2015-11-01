@@ -2,6 +2,7 @@ var rimraf = require('rimraf');
 var clgulp = require('clgulp');
 var gulp = clgulp(require('gulp'));
 var util = clgulp.util;
+var exec = clgulp.exec;
 var electron = require('gulp-atom-electron');
 var symdest = require('gulp-symdest');
 var zip = require('gulp-vinyl-zip');
@@ -41,35 +42,39 @@ gulp.task('build:osx', ['clean:osx'], function() {
 });
 
 gulp.task('pack:osx', ['build:osx'], function(cb) {
-	var ee = appdmg({
-		target: 'dist/osx/classeur-osx.dmg',
-		basepath: __dirname,
-		specification: {
-			title: 'Classeur',
-			background: 'assets/images/landing-bg.jpg',
-			icon: 'assets/images/icon.icns',
-			'icon-size': 80,
-			contents: [{
-				x: 450,
-				y: 242,
-				type: 'link',
-				path: '/Applications'
-			}, {
-				x: 190,
-				y: 242,
-				type: 'file',
-				path: 'dist/osx/Classeur.app'
-			}]
-		}
+	exec([
+		'umount /Volumes/Classeur'
+	], function() {
+		var ee = appdmg({
+			target: 'dist/osx/classeur-osx.dmg',
+			basepath: __dirname,
+			specification: {
+				title: 'Classeur',
+				background: 'assets/images/landing-bg.jpg',
+				icon: 'assets/images/icon.icns',
+				'icon-size': 80,
+				contents: [{
+					x: 450,
+					y: 242,
+					type: 'link',
+					path: '/Applications'
+				}, {
+					x: 190,
+					y: 242,
+					type: 'file',
+					path: 'dist/osx/Classeur.app'
+				}]
+			}
+		});
+		ee.on('progress', function(info) {
+			info.title && util.log(info.title);
+		});
+		ee.on('finish', cb);
+		ee.on('error', cb);
 	});
-	ee.on('progress', function(info) {
-		info.title && util.log(info.title);
-	});
-	ee.on('finish', cb);
-	ee.on('error', cb);
 });
 
-gulp.task('publish:osx', function() {
+gulp.task('publish:osx', ['pack:osx'], function() {
 	gulp.src([
 		'dist/osx/classeur-osx.zip',
 		'dist/osx/classeur-osx.dmg'
