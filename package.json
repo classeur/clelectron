@@ -1,6 +1,6 @@
 {
   "name": "Classeur",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -16,7 +16,6 @@
     "gulp-atom-electron": "^1.0.0",
     "gulp-github-release": "^1.0.3",
     "gulp-symdest": "^1.0.0",
-    "gulp-vinyl-zip": "^1.1.1",
     "rimraf": "^2.4.3"
   },
   "dependencies": {

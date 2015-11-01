@@ -20,7 +20,8 @@ try {
 if (process.platform === 'darwin') {
     var platform = os.platform() + '_' + os.arch();
     var version = app.getVersion();
-    autoUpdater.setFeedUrl('http://download.classeur.io/update/' + platform + '/' + version);
+    autoUpdater.setFeedUrl('https://clnuts.herokuapp.com/update/' + platform + '/' + version);
+    autoUpdater.checkForUpdates();
 }
 
 function checkUrl(url) {

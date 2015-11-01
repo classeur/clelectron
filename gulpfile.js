@@ -5,7 +5,6 @@ var util = clgulp.util;
 var exec = clgulp.exec;
 var electron = require('gulp-atom-electron');
 var symdest = require('gulp-symdest');
-var zip = require('gulp-vinyl-zip');
 var extend = require('util')._extend;
 var appdmg = require('appdmg');
 var release = require('gulp-github-release');
@@ -37,14 +36,21 @@ gulp.task('build:osx', ['clean:osx'], function() {
 		.pipe(electron(extend({
 			platform: 'darwin',
 		}, electronOptions)))
-		.pipe(symdest('dist/osx'))
-		.pipe(zip.dest('dist/osx/classeur-osx.zip'));
+		.pipe(symdest('dist/osx'));
 });
 
-gulp.task('pack:osx', ['build:osx'], function(cb) {
-	exec([
-		'umount /Volumes/Classeur'
-	], function() {
+gulp.task('sign:osx', ['build:osx'], function(cb) {
+	exec('codesign -f -v --deep -s "Developer ID Application: Benoit Schweblin (NX787V9962)" dist/osx/Classeur.app', cb);
+});
+
+gulp.task('zip:osx', ['sign:osx'], function(cb) {
+	exec('zip --symlinks -r classeur-osx.zip Classeur.app', {
+		cwd: 'dist/osx'
+	}, cb);
+});
+
+gulp.task('pack:osx', ['sign:osx'], function(cb) {
+	exec('umount /Volumes/Classeur', function() {
 		var ee = appdmg({
 			target: 'dist/osx/classeur-osx.dmg',
 			basepath: __dirname,
@@ -74,14 +80,14 @@ gulp.task('pack:osx', ['build:osx'], function(cb) {
 	});
 });
 
-gulp.task('publish:osx', ['pack:osx'], function() {
+gulp.task('publish:osx', ['zip:osx', 'pack:osx'], function() {
 	gulp.src([
-		'dist/osx/classeur-osx.zip',
-		'dist/osx/classeur-osx.dmg'
-	])
-    .pipe(release({
-    	owner: 'classeur',
-    	repo: 'clelectron',
-    	manifest: require('./package.json')
-    }));
+			'dist/osx/classeur-osx.zip',
+			'dist/osx/classeur-osx.dmg'
+		])
+		.pipe(release({
+			owner: 'classeur',
+			repo: 'clelectron',
+			manifest: require('./package.json')
+		}));
 });
