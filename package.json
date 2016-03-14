@@ -10,8 +10,8 @@
   "license": "ISC",
   "devDependencies": {
     "appdmg": "^0.3.5",
-    "clgulp": "^1.0.4",
-    "electron-prebuilt": "^0.34.0",
+    "clgulp": "^1.1.0",
+    "electron-prebuilt": "^0.37.0",
     "gulp": "^3.9.0",
     "gulp-atom-electron": "^1.0.0",
     "gulp-github-release": "^1.0.3",
