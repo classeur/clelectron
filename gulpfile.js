@@ -11,7 +11,7 @@ var release = require('gulp-github-release')
 var replace = require('gulp-replace')
 
 var electronOptions = {
-  version: '0.37.1',
+  version: '0.37.7',
   winIcon: 'assets/images/icon.ico',
   darwinIcon: 'assets/images/icon.icns'
 }

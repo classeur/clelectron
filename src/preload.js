@@ -13,7 +13,11 @@ var MenuItem = remote.require('menu-item')
 
 global.clElectron = {
   addEventListener: function (name, listener) {
-    ipcRenderer.on(name, listener)
+    ipcRenderer.on(name, function () {
+      var args = Array.prototype.slice.call(arguments)
+      args.shift() // First arg is event
+      listener.apply(null, args)
+    })
   },
   getVersion: function () {
     return ipcRenderer.send('getVersion')

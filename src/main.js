@@ -11,6 +11,9 @@ autoUpdater.on('error', function (err) {
   console.error(err)
 })
 
+// Show the node version to use to compile the dependencies
+// console.log(process.version)
+
 var applySettings
 var settings
 var settingsFilePath = path.join(app.getPath('userData'), 'settings.json')
@@ -25,7 +28,7 @@ try {
 if (process.platform === 'darwin') {
   var platform = os.platform() + '_' + os.arch()
   var version = app.getVersion()
-  autoUpdater.setFeedUrl('https://clnuts.herokuapp.com/update/' + platform + '/' + version)
+  autoUpdater.setFeedURL('https://clnuts.herokuapp.com/update/' + platform + '/' + version)
   autoUpdater.checkForUpdates()
 }
 
@@ -107,8 +110,10 @@ function createWindow (cb) {
     x: lastWindowOffset % 100 + 50,
     y: lastWindowOffset % 100 + 50,
     title: 'Classeur',
-    'node-integration': false,
-    preload: path.join(__dirname, 'preload.js')
+    webPreferences: {
+      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js')
+    }
   })
   lastWindowOffset += 20
   var classeurCtx = new ClasseurCtx(browserWindow.webContents)
